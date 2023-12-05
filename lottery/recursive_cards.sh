@@ -3,7 +3,7 @@ winnerStep=0
 ownedStep=0
 winnerList=()
 ownedList=()
-lineCount=0
+cardCounts=()
 while read -r line; do
     IFS=':' read -ra main <<< "$line"
     IFS='|' read -ra sets <<< "${main[1]}"
@@ -17,52 +17,46 @@ while read -r line; do
     for entry in "${owned[@]}"; do
         ownedList+=($entry)
     done
-    lineCount=$((lineCount + 1))
+    cardCounts+=(1)
 done < input
 
-winnerLength=${#winnerList[@]}
-ownerLength=${#ownedList[@]}
 winnerStep=${#winning[@]}
 ownedStep=${#owned[@]}
+lineCount=${#cardCounts[@]}
 
 get_card_points () {
-    ownedIndex=$1
-    winnerIndex=$2
-
-    if [[ $winnerIndex -gt $winnerLength ]]; then
+    cardNumber=$1
+    local -n cards=$2
+    if [[ $cardNumber -gt $lineCount ]]; then
         echo 0
         return
     fi
 
-    if [[ $ownedIndex -gt $ownerLength ]]; then
-        echo 0
-        return
-    fi
+    ownedIndex=$((cardNumber * ownedStep))
+    winnerIndex=$((cardNumber * winnerStep))
 
-    nextCardCount=0
+    card=${cards[$cardNumber]}
+    followUps=0
     for (( number=ownedIndex; number<$((ownedIndex + ownedStep)); number++ )); do
         for (( winner=winnerIndex; winner<$((winnerIndex + winnerStep)); winner++ )); do
             if [[ ${ownedList[$number]} -eq ${winnerList[$winner]} ]]; then
-                nextCardCount=$((nextCardCount + 1))
+                followUps=$((followUps + 1))
             fi
         done
     done
 
-    followUps=$nextCardCount
     for (( count=1; count<=followUps; count++ )); do
-        subPoints=$(get_card_points "$((ownedIndex + (count * ownedStep)))" "$((winnerIndex + (count * winnerStep)))")
-        nextCardCount=$((nextCardCount + subPoints))
+        cards[cardNumber + count]=$((${cards[cardNumber + count]} + card))
     done
-
-    echo $nextCardCount
 }
 
-sum=0
 for (( index=0; index<lineCount; index++ )); do
-    points=$(get_card_points $(($index * ownedStep)) $(($index * winnerStep)))
-    sum=$((sum + points))
+    get_card_points $index cardCounts
 done
 
-sum=$((sum + lineCount))
+sum=0
+for cardPoints in "${cardCounts[@]}"; do
+    sum=$((sum + cardPoints))
+done
 
 echo $sum
