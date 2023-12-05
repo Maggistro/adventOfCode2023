@@ -186,11 +186,6 @@ for (( seed=0; seed<${#seeds[@]}; seed+=2 )); do
         if [[ $location -gt ${range[index]} ]]; then
             # echo "location $location replaced by ${range[index]}" > /dev/tty
             location=${range[index]}
-        elif [[ $location -lt ${range[index]} ]]; then
-            :
-        elif [[ $location -lt $((range[index] + range[index + 1])) ]]; then
-            # echo "location $location replaced range by $((range[index] + range[index + 1]))" > /dev/tty
-            location=$((range[index] + range[index] - location))
         fi
     done
 done
