@@ -53,7 +53,7 @@ seed_ranges() {
         local new_ranges=( ${ranges[rangeIndex]} ${ranges[rangeIndex + 1]})
         local matched=0
 
-        echo "new_ranges ${new_ranges[*]}" > /dev/tty
+        # echo "new_ranges ${new_ranges[*]}" > /dev/tty
         for (( index=0; index<${#map[@]}; index+=3 )); do
             local left_split=()
             local right_split=()
@@ -90,7 +90,7 @@ seed_ranges() {
                 center_split=( ${new_ranges[@]} )
             fi
 
-            echo "center_split ${new_ranges[*]} ${map[index]} ${map[index + 1]} ${map[index + 2]}" > /dev/tty
+            # echo "center_split ${new_ranges[*]} ${map[index]} ${map[index + 1]} ${map[index + 2]}" > /dev/tty
 
             # calculate mapped output center
             center_split[0]=$((map[index + 1] + new_ranges[0] - map[index]))
@@ -98,24 +98,24 @@ seed_ranges() {
 
             # call map_seeds with left_split and/or right_split
             if [[ ${#right_split[@]} -gt 0 ]]; then
-                echo "right ${map[index]} ${map[index + 2]} ${ranges[rangeIndex]} ${ranges[rangeIndex + 1]} ${new_ranges[*]} ${right_split[*]}" > /dev/tty
+                # echo "right ${map[index]} ${map[index + 2]} ${ranges[rangeIndex]} ${ranges[rangeIndex + 1]} ${new_ranges[*]} ${right_split[*]}" > /dev/tty
                 read -a right_split <<< $(seed_ranges $map_name "${right_split[@]}")
-                echo "right_split ${right_split[*]}" > /dev/tty
+                # echo "right_split ${right_split[*]}" > /dev/tty
             fi
 
             if [[ ${#left_split[@]} -gt 0 ]]; then
-                echo "left ${map[index]} ${map[index + 2]} ${ranges[rangeIndex]} ${ranges[rangeIndex + 1]} ${new_ranges[*]} ${left_split[*]}" > /dev/tty
+                # echo "left ${map[index]} ${map[index + 2]} ${ranges[rangeIndex]} ${ranges[rangeIndex + 1]} ${new_ranges[*]} ${left_split[*]}" > /dev/tty
                 read -a left_split <<< $(seed_ranges $map_name "${left_split[@]}")
-                echo "left_split ${left_split[*]}" > /dev/tty
+                # echo "left_split ${left_split[*]}" > /dev/tty
             fi
 
             # combine and remember
             matched_ranges+=(${left_split[@]} ${right_split[@]} ${center_split[@]})
-            echo "matched ${left_split[@]} ${right_split[@]} ${center_split[@]}" > /dev/tty
+            # echo "matched ${left_split[@]} ${right_split[@]} ${center_split[@]}" > /dev/tty
         done
         if [[ $matched -eq 0 ]]; then
             unmatched_ranges+=("${new_ranges[0]}" "${new_ranges[1]}")
-            echo "unmatched ${new_ranges[0]} ${new_ranges[1]}" > /dev/tty
+            # echo "unmatched ${new_ranges[0]} ${new_ranges[1]}" > /dev/tty
         fi
     done
 
@@ -178,22 +178,22 @@ location=9223372036854775807
 range=()
 for (( seed=0; seed<${#seeds[@]}; seed+=2 )); do
     range=(${seeds[seed]} ${seeds[seed + 1]})
-    echo "${range[*]} soil" > /dev/tty
+    # echo "${range[*]} soil" > /dev/tty
     read -a range <<< $(seed_ranges seed_to_soil "${range[@]}")
-    echo "${range[*]} fertilizer" > /dev/tty
+    # echo "${range[*]} fertilizer" > /dev/tty
     read -a range <<< $(seed_ranges soil_to_fertilizer "${range[@]}")
-    echo "${range[*]} water" > /dev/tty
+    # echo "${range[*]} water" > /dev/tty
     read -a range <<< $(seed_ranges fertilizer_to_water "${range[@]}")
-    echo "${range[*]} light" > /dev/tty
+    # echo "${range[*]} light" > /dev/tty
     read -a range <<< $(seed_ranges water_to_light "${range[@]}")
-    echo "${range[*]} temperature" > /dev/tty
+    # echo "${range[*]} temperature" > /dev/tty
     read -a range <<< $(seed_ranges light_to_temperature "${range[@]}")
-    echo "${range[*]} humidity" > /dev/tty
+    # echo "${range[*]} humidity" > /dev/tty
     read -a range <<< $(seed_ranges temperature_to_humidity "${range[@]}")
-    echo "${range[*]} location" > /dev/tty
+    # echo "${range[*]} location" > /dev/tty
     read -a range <<< $(seed_ranges humidity_to_location "${range[@]}")
-    echo "done: ${range[*]}" > /dev/tty
-    echo "" > /dev/tty
+    # echo "done: ${range[*]}" > /dev/tty
+    # echo "" > /dev/tty
     for (( index=0; index<${#range[@]}; index+=2 )); do
         if [[ $location -gt ${range[index]} ]]; then
             # echo "location $location replaced by ${range[index]}" > /dev/tty
