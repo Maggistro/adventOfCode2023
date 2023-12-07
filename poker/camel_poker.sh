@@ -1,6 +1,6 @@
 #!/bin/bash
 debug=$1
-readarray -t hands < poker/miniinput
+readarray -t hands < poker/input
 
 five=()
 four=()
@@ -25,7 +25,7 @@ get_type_value () {
             4)
                 if [[ $joker_count -eq 0 ]]; then
                     echo 6
-                elif [[ $joker_count -ge 1 ]]; then
+                elif [[ $joker_count -eq 1 ]] || [[ $joker_count -eq 4 ]]; then
                     echo 7
                 fi
                 return
@@ -33,10 +33,14 @@ get_type_value () {
             3)
                 if [[ $joker_count -eq 1 ]]; then
                     echo 6
-                elif [[ "${cards_counter[*]}" =~ "2" ]] && [[ $joker_count -ne 2 ]]; then
-                    echo 5
-                elif [[ $joker_count -eq 2 ]]; then
-                    echo 7
+                elif [[ "${cards_counter[*]}" =~ "2" ]]; then
+                    if [[ $joker_count -eq 2 ]]; then
+                        echo 7
+                    elif [[ $joker_count -eq 3 ]]; then
+                        echo 7
+                    else
+                        echo 5
+                    fi
                 elif [[ $joker_count -eq 3 ]]; then
                     echo 6
                 else
@@ -59,7 +63,7 @@ get_type_value () {
                     else
                         echo 3
                     fi
-                elif [[ $joker_count -eq 1 ]]; then
+                elif [[ $joker_count -eq 1 ]] || [[ $joker_count -eq 2 ]]; then
                     echo 4
                 else
                     echo 2
@@ -80,7 +84,7 @@ get_type_value () {
 
 map_hand_to_type () {
     local hand=$1
-    #            2 3 4 5 6 7 8 9 T J/W Q/X K/Y A/Z
+    #            2 3 4 5 6 7 8 9 T J/1 Q/X K/Y A/Z
     local cards=(0 0 0 0 0 0 0 0 0 0   0   0   0)
 
     for (( card=0; card<5; card++ )); do
@@ -94,7 +98,7 @@ map_hand_to_type () {
             8) cards[6]=$((cards[6] + 1));;
             9) cards[7]=$((cards[7] + 1));;
             T) cards[8]=$((cards[8] + 1));;
-            W) cards[9]=$((cards[9] + 1));; # J
+            1) cards[9]=$((cards[9] + 1));; # J
             X) cards[10]=$((cards[10] + 1));; # Q
             Y) cards[11]=$((cards[11] + 1));; # K
             Z) cards[12]=$((cards[12] + 1));; # A
@@ -108,7 +112,7 @@ for (( hand_number=0; hand_number<${#hands[@]}; hand_number++ )); do
     IFS=' ' read -ra hand_parts <<< "${hands[hand_number]}"
 
     # replace J/Q/K/A with W/X/Y/Z for sorting
-    hand=$(sed s/J/W/g <<< ${hand_parts[0]})
+    hand=$(sed s/J/1/g <<< ${hand_parts[0]})
     hand=$(sed s/Q/X/g <<< $hand)
     hand=$(sed s/K/Y/g <<< $hand)
     hand=$(sed s/A/Z/g <<< $hand)
