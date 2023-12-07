@@ -7,12 +7,12 @@ get_intersection_length () {
 
     # get quadratic square
     # => sqrt(b*b - 4ac)
-    square=$(bc -l <<< "scale=1; sqrt((${quadratic[1]} * ${quadratic[1]}) + (4 * $distance * ${quadratic[0]}))")
+    square=$(bc -l <<< "scale=5; sqrt((${quadratic[1]} * ${quadratic[1]}) + (4 * $distance * ${quadratic[0]}))")
 
     # round up first
-    x_1=$(printf %.f $(bc -l <<< "scale=1; (-${quadratic[1]} + $square) / (2 * ${quadratic[0]}) + 1"))
+    x_1=$(printf %.f $(bc -l <<< "scale=5; (-${quadratic[1]} + $square) / (2 * ${quadratic[0]}) + 1"))
     # round down second
-    x_2=$(printf %.f $(bc -l <<< "scale=1; (-${quadratic[1]} - $square) / (2 * ${quadratic[0]})"))
+    x_2=$(printf %.f $(bc -l <<< "scale=5; (-${quadratic[1]} - $square) / (2 * ${quadratic[0]})"))
 
     echo "$((x_2 - x_1))"
 }
@@ -20,7 +20,7 @@ get_intersection_length () {
 calculate_quadratic_function () {
     local start=(0 0)
     local endTime=$1
-    local center=("$(bc -l <<< "scale=1; $endTime/2")" "$(bc -l <<< "scale=1; ($endTime - ($endTime / 2)) * ($endTime / 2)")")
+    local center=("$(bc -l <<< "scale=5; $endTime/2")" "$(bc -l <<< "scale=5; ($endTime - ($endTime / 2)) * ($endTime / 2)")")
     local end=($endTime 0)
 
     #start "0=a*0*0 + b*0 + c" always true
@@ -40,10 +40,10 @@ calculate_quadratic_function () {
     # => ${center[1]}=a*${center[0]}*${center[0]} - a*$endTime*${center[0]}
     # => ${center[1]}=a*(${center[0]}*${center[0]} - $endTime*${center[0]})
     # => a=(${center[1]} / (${center[0]}*${center[0]} - $endTime*${center[0]}))
-    a=$(bc -l <<< "scale=1; (${center[1]} / (${center[0]} * ${center[0]} - $endTime * ${center[0]}))")
+    a=$(bc -l <<< "scale=5; (${center[1]} / (${center[0]} * ${center[0]} - $endTime * ${center[0]}))")
 
     # result in end => b = -(${center[1]} / (${center[0]}*${center[0]} - $endTime*${center[0]}))*$endTime
-    b=$(bc -l <<< "scale=1; -(${center[1]} / (${center[0]} * ${center[0]} - ($endTime * ${center[0]}))) * $endTime")
+    b=$(bc -l <<< "scale=5; -(${center[1]} / (${center[0]} * ${center[0]} - ($endTime * ${center[0]}))) * $endTime")
 
     echo "$a $b"
 }
