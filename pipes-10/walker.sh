@@ -5,7 +5,7 @@ BOT=5
 LEFT=7
 
 debug=${1:0}
-readarray -t raw < pipes-10/input
+readarray -t raw < pipes-10/small_encirclement
 declare -a grid=()
 line_length=${#raw[0]}
 
@@ -100,7 +100,7 @@ transform_value () {
             echo "35"
             ;;
         '.')
-            echo "11"
+            echo "1"
             ;;
         *)
             echo "$value"
