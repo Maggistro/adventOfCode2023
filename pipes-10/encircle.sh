@@ -5,8 +5,10 @@ BOT=5
 LEFT=7
 
 debug=${1:0}
-readarray -t raw < pipes-10/larger_encirclement
+readarray -t raw < pipes-10/input
 declare -a grid=()
+declare -a full_path=()
+declare -A path_index=()
 line_length=${#raw[0]}
 
 get_left_right () {
@@ -192,14 +194,15 @@ transform_value_back () {
 }
 
 is_valid_rim () {
-    local content=${grid[$1]}
-    [[ $debug -ge 3 ]] && echo "is_valid_rim: $content" > /dev/tty
+    local grid_position=$1
+    [[ $debug -ge 3 ]] && echo "is_valid_rim: $grid_position" > /dev/tty
 
-    if [[ $content -eq 1 ]]; then
-        echo 1
+    if [[ ${grid[$grid_position]} == "X" ]] || [[ "${path_index[$grid_position]}" -eq 1 ]]; then
+        echo 0
         return
     fi
-    echo 0
+
+    echo 1
 }
 
 build_initial_rim () {
@@ -207,90 +210,124 @@ build_initial_rim () {
     local -n directions=$2
     local -n output_rim=$3
     local -n grid_out=$4
-    local rim_direction=$5
 
     # encirclement to the right of path
-    if [[ $rim_direction -gt 0 ]]; then
-        [[ $debug -ge 1 ]] && echo "build_rim: right" > /dev/tty
-        for (( index=0; index<${#path[@]}; index++ )); do
-            case ${directions[$index]} in
-                "$TOP")
-                    value=$((${path[$index]} + 1))
-                    [[ $debug -ge 3 ]] && echo "build_rim: right ${grid_out[$value]}" > /dev/tty
-                    if [[ $(is_valid_rim $value) -eq 1 ]]; then
-                        output_rim+=($value)
-                        grid_out[$value]="X"
-                    fi
-                    ;;
-                "$RIGHT")
-                    value=$((${path[$index]} + line_length))
-                    [[ $debug -ge 3 ]] && echo "build_rim: bot ${grid_out[$value]}" > /dev/tty
-                    if [[ $(is_valid_rim $value) -eq 1 ]]; then
-                        output_rim+=($value)
-                        grid_out[$value]="X"
-                    fi
-                    ;;
-                "$BOT")
-                    value=$((${path[$index]} - 1))
-                    [[ $debug -ge 3 ]] && echo "build_rim: left ${grid_out[$value]}" > /dev/tty
-                    if [[ $(is_valid_rim $value) -eq 1 ]]; then
-                        output_rim+=($value)
-                        grid_out[$value]="X"
-                    fi
-                    ;;
-                "$LEFT")
-                    value=$((${path[$index]} - line_length))
-                    [[ $debug -ge 3 ]] && echo "build_rim: top ${grid_out[$value]}" > /dev/tty
-                    if [[ $(is_valid_rim $value) -eq 1 ]]; then
-                        output_rim+=($value)
-                        grid_out[$value]="X"
-                    fi
-                    ;;
-            esac
-        done
-    fi
+    [[ $debug -ge 1 ]] && echo "build_rim: right" > /dev/tty
+    for (( index=0; index<${#path[@]}; index++ )); do
+        # check direct neighbor
+        case ${directions[$index]} in
+            "$TOP")
+                value=$((${path[$index]} + 1))
+                [[ $debug -ge 3 ]] && echo "build_rim: right ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+            "$RIGHT")
+                value=$((${path[$index]} + line_length))
+                [[ $debug -ge 3 ]] && echo "build_rim: bot ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+            "$BOT")
+                value=$((${path[$index]} - 1))
+                [[ $debug -ge 3 ]] && echo "build_rim: left ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+            "$LEFT")
+                value=$((${path[$index]} - line_length))
+                [[ $debug -ge 3 ]] && echo "build_rim: top ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+        esac
+
+        # check diagonal neighbors
+        case ${directions[$index]} in
+            "$TOP")
+                value=$((${path[$index]} + 1 - line_length))
+                [[ $debug -ge 3 ]] && echo "build_rim: top right ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+            "$RIGHT")
+                value=$((${path[$index]} + line_length + 1))
+                [[ $debug -ge 3 ]] && echo "build_rim: right bot ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+            "$BOT")
+                value=$((${path[$index]} - 1 + line_length))
+                [[ $debug -ge 3 ]] && echo "build_rim: bot left ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+            "$LEFT")
+                value=$((${path[$index]} - line_length))
+                [[ $debug -ge 3 ]] && echo "build_rim: left top ${grid_out[$value]}" > /dev/tty
+                if [[ $(is_valid_rim $value) -eq 1 ]]; then
+                    output_rim+=($value)
+                    grid_out[$value]="X"
+                fi
+                ;;
+        esac
+    done
 }
 
 flood_encirclements () {
-    local current_rim=("$@")
     local -n grid_in=grid
+    local current_rim=("$@")
     local next_rim=()
     local counter=${#current_rim[@]}
 
-    [[ $debug -ge 2 ]] && echo "flood_encirclements: ${current_rim[*]}" > /dev/tty
+    [[ $debug -ge 1 ]] && echo "flood_encirclements: ${current_rim[*]}" > /dev/tty
 
     for position in "${current_rim[@]}"; do
         #top
         curr=$((position - line_length))
         if [[ $(is_valid_rim $curr) -eq 1 ]]; then
-            grid_in[curr]="X"
+            grid_in[$curr]="X"
             next_rim+=($curr)
         fi
 
         #left
         curr=$((position + 1))
         if [[ $(is_valid_rim $curr) -eq 1 ]]; then
-            grid_in[curr]="X"
+            grid_in[$curr]="X"
             next_rim+=($curr)
         fi
 
         #bot
         curr=$((position + line_length))
         if [[ $(is_valid_rim $curr) -eq 1 ]]; then
-            grid_in[curr]="X"
+            grid_in[$curr]="X"
             next_rim+=($curr)
         fi
 
         #right
         curr=$((position - 1))
         if [[ $(is_valid_rim $curr) -eq 1 ]]; then
-            grid_in[curr]="X"
+            grid_in[$curr]="X"
             next_rim+=($curr)
         fi
     done
 
     if [[ ${#next_rim[@]} -gt 0 ]]; then
-        counter=$((counter + $(flood_encirclements ${next_rim[@]})))
+        counter=$((counter + $(flood_encirclements ${next_rim[*]})))
     fi
 
     echo $counter
@@ -325,11 +362,17 @@ declare -a current_positions
 declare -a outgoing_direction
 get_start_pipes $start_position current_positions outgoing_direction
 
-full_path=("$start_position")
-full_directions+=("${outgoing_direction[1]}")
-walker=("${current_positions[1]}" "${outgoing_direction[1]}" 0)
+#switch left/right
+direction_selector=0
+
+full_path+=("$start_position")
+path_index["$start_position"]=1
+full_directions+=("${outgoing_direction[$direction_selector]}")
+walker=("${current_positions[$direction_selector]}" "${outgoing_direction[$direction_selector]}" 0)
 full_path+=("${walker[0]}")
+path_index["${walker[0]}"]=1
 full_directions+=("${walker[1]}")
+[[ $debug -ge 1 ]] && echo "detected ${walker[2]} direction" > /dev/tty
 
 declare -a rim=()
 # run while not equal
@@ -337,6 +380,7 @@ counter=0
 while [[ "${walker[0]}" -ne $start_position ]]; do
     walker=($(get_next_position "${walker[0]}" "${walker[1]}" "${walker[2]}"))
     full_path+=("${walker[0]}")
+    path_index["${walker[0]}"]=1
     full_directions+=("${walker[1]}")
     counter=$((counter + 1))
 done
@@ -356,10 +400,10 @@ echo "${full_path[*]}"
 echo "${full_directions[*]}"
 
 declare -a rim=()
-build_initial_rim full_path full_directions rim grid ${walker[2]}
+build_initial_rim full_path full_directions rim grid
 
-echo "${rim[*]}"
+[[ $debug -ge 1 ]] && echo "rim ${rim[*]}" > /dev/tty
 
-flood_encirclements ${rim[*]}
+echo "final count: $(flood_encirclements ${rim[*]})"
 
 output_new_grid
