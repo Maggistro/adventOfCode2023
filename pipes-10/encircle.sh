@@ -5,7 +5,7 @@ BOT=5
 LEFT=7
 
 debug=${1:0}
-readarray -t raw < pipes-10/small_encirclement
+readarray -t raw < pipes-10/larger_encirclement
 declare -a grid=()
 line_length=${#raw[0]}
 
@@ -160,6 +160,37 @@ transform_value () {
     esac
 }
 
+transform_value_back () {
+    value=$1
+
+    case $value in
+        '6')
+            echo "L"
+            ;;
+        '10')
+            echo "|"
+            ;;
+        '14')
+            echo "J"
+            ;;
+        '15')
+            echo "F"
+            ;;
+        '21')
+            echo "-"
+            ;;
+        '35')
+            echo "7"
+            ;;
+        '1')
+            echo "."
+            ;;
+        *)
+            echo "$value"
+            ;;
+    esac
+}
+
 is_valid_rim () {
     local content=${grid[$1]}
     [[ $debug -ge 3 ]] && echo "is_valid_rim: $content" > /dev/tty
@@ -220,6 +251,63 @@ build_initial_rim () {
     fi
 }
 
+flood_encirclements () {
+    local current_rim=("$@")
+    local -n grid_in=grid
+    local next_rim=()
+    local counter=${#current_rim[@]}
+
+    [[ $debug -ge 2 ]] && echo "flood_encirclements: ${current_rim[*]}" > /dev/tty
+
+    for position in "${current_rim[@]}"; do
+        #top
+        curr=$((position - line_length))
+        if [[ $(is_valid_rim $curr) -eq 1 ]]; then
+            grid_in[curr]="X"
+            next_rim+=($curr)
+        fi
+
+        #left
+        curr=$((position + 1))
+        if [[ $(is_valid_rim $curr) -eq 1 ]]; then
+            grid_in[curr]="X"
+            next_rim+=($curr)
+        fi
+
+        #bot
+        curr=$((position + line_length))
+        if [[ $(is_valid_rim $curr) -eq 1 ]]; then
+            grid_in[curr]="X"
+            next_rim+=($curr)
+        fi
+
+        #right
+        curr=$((position - 1))
+        if [[ $(is_valid_rim $curr) -eq 1 ]]; then
+            grid_in[curr]="X"
+            next_rim+=($curr)
+        fi
+    done
+
+    if [[ ${#next_rim[@]} -gt 0 ]]; then
+        counter=$((counter + $(flood_encirclements ${next_rim[@]})))
+    fi
+
+    echo $counter
+}
+
+output_new_grid () {
+    rm -f output
+    touch output
+    for (( index=0; index<${#grid[@]}; index++ )); do
+        if [[ $((index % line_length)) -eq 0 ]]; then
+            echo >> output
+        fi
+        echo -n "$(transform_value_back "${grid[index]}")" >> output
+    done
+    echo >> output
+}
+
 # transform grid and find start
 start_position=-1
 for line in "${raw[@]}"; do
@@ -238,8 +326,8 @@ declare -a outgoing_direction
 get_start_pipes $start_position current_positions outgoing_direction
 
 full_path=("$start_position")
-full_directions+=("${outgoing_direction[0]}")
-walker=("${current_positions[0]}" "${outgoing_direction[0]}" 0)
+full_directions+=("${outgoing_direction[1]}")
+walker=("${current_positions[1]}" "${outgoing_direction[1]}" 0)
 full_path+=("${walker[0]}")
 full_directions+=("${walker[1]}")
 
@@ -263,6 +351,7 @@ done
 #     done
 # fi
 
+echo "${walker[2]}"
 echo "${full_path[*]}"
 echo "${full_directions[*]}"
 
@@ -271,4 +360,6 @@ build_initial_rim full_path full_directions rim grid ${walker[2]}
 
 echo "${rim[*]}"
 
-# flood_encirclements rim
+flood_encirclements ${rim[*]}
+
+output_new_grid
