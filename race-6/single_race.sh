@@ -18,7 +18,7 @@ calculate_distances () {
     echo $winning_count
 }
 
-readarray -t race_data < race/input
+readarray -t race_data < race-6/input
 IFS=':' read -ra time_line <<< ${race_data[0]}
 IFS=':' read -ra distance_line <<< ${race_data[1]}
 
