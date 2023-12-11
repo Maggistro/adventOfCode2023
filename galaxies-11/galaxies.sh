@@ -5,6 +5,7 @@ readarray -t input < galaxies-11/input
 declare -a galaxies=()
 declare -a expanded_rows=()
 declare -a expanded_cols=( $(for (( i=0; i<${#input[0]}; i++ )); do echo $i; done) )
+galaxy_expansion=999999
 
 manhattan_distance() {
     local x1=$1
@@ -24,18 +25,18 @@ manhattan_distance() {
     # add expanded cols
     for exp_col in "${expanded_cols[@]}"; do
         if [[ $x1 -gt  $exp_col && $x2 -lt $exp_col ]]; then
-            x=$(( x + 1 ))
+            x=$(( x + galaxy_expansion ))
         elif [[ $x1 -lt $exp_col && $x2 -gt $exp_col ]]; then
-            x=$(( x + 1 ))
+            x=$(( x + galaxy_expansion ))
         fi
     done
 
     # add expanded cols
     for exp_row in "${expanded_rows[@]}"; do
         if [[ $y1 -gt  $exp_row && $y2 -lt $exp_row ]]; then
-            y=$(( y + 1 ))
+            y=$(( y + galaxy_expansion ))
         elif [[ $y1 -lt $exp_row && $y2 -gt $exp_row ]]; then
-            y=$(( y + 1 ))
+            y=$(( y + galaxy_expansion ))
         fi
     done
 
