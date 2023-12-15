@@ -1,7 +1,7 @@
 #!/bin/bash
 
 debug=${1:0}
-readarray -t lines < ./mirrors-13/miniinput
+readarray -t lines < ./mirrors-13/input
 
 
 check_vertical_mirror () {
@@ -119,7 +119,7 @@ check_block () {
     for (( i=0; i<${#first_enty}; i++ )); do
         result=$(check_vertical_mirror 1 ${first_enty:$i})
         if [[  $result -ne -1 ]]; then
-            right_position+=($result)
+            right_position+=( $((result + i)))
         fi
     done
 
@@ -152,6 +152,11 @@ for (( linePos=0; linePos<${#lines[@]}; linePos++ )); do
             
             [[ $debug -ge 2 ]] && echo "check flipped" > /dev/tty
             result=$(( $(check_block flipped) * 100 ))
+            
+            if [[ $result -eq 0 ]]; then
+                echo "ERROR: No match found for:" > /dev/tty
+                print_block temp
+            fi
         fi
         sum=$((sum + result))
         temp=()
