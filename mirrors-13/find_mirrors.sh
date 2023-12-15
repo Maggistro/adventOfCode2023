@@ -14,8 +14,7 @@ check_vertical_mirror () {
 
     #check even
     if [[ $((length % 2)) -eq 0 ]]; then
-        # [[ $length -eq 8 ]] &&  echo $input > /dev/tty
-        [[ $length -eq 8 ]] &&  echo $input ${input:0:$((length/2))} $(rev <<< "${input:$((length/2))}") > /dev/tty
+        # [[ $length -eq 10 ]] &&  echo $input > /dev/tty
         if [[ ${input:0:$((length/2))} == $(rev <<< "${input:$((length/2))}") ]]; then
             echo $((length/2))
         else
@@ -58,18 +57,29 @@ print_block () {
 }
 
 check_subset () {
-    local pos=$1
-    local length=$2
-    local -n subset=$3
+    local input=$1
+    local left=$2
+    shift
+    shift
+    local possiblePosition=( "$@" )
+    local validPositions=()
+    local length=${#input}
     
-    for set in "${subset[@]}"; do
-        if [[ ${set:$pos:$((length/2))} != $(rev <<< "${set:$((pos + length/2))}") ]]; then
-            echo 0
-            return
-        fi
-    done
+    if [[ $left -eq 1 ]]; then
+        for pos in "${possiblePosition[@]}"; do
+            if [[ ${input:0:$pos} == $(rev <<< "${input:$pos:$pos}") ]]; then
+                validPositions+=( $pos )
+            fi
+        done
+    else
+        for pos in "${possiblePosition[@]}"; do
+            if [[ ${input:$((pos - length + pos)):$((length - pos))} == $(rev <<< "${input:$pos}") ]]; then
+                validPositions+=( $pos )
+            fi
+        done
+    fi
 
-    echo 1
+    echo "${validPositions[@]}"
 }  
 
 check_block () {
@@ -77,46 +87,57 @@ check_block () {
 
     # [[ $debug -ge 2 ]] && print_block block
 
-    local pos=-1
-    # check vertical
-    for entry in "${block[@]}"; do
-        # ignore right
-        for (( i=${#entry}; i>0; i-- )); do
-            newPos=$(check_vertical_mirror 0 ${entry:0:$i})
-            pos=$(( newPos > pos ? newPos : pos ))
-        done
+    #detect_all_mirrors
+    # ignore right
+    first_enty=${block[0]};
+    left_positions=()
+    for (( i=${#first_enty}; i>1; i-- )); do
+        result=$(check_vertical_mirror 0 ${first_enty:0:$i})
+        if [[  $result -ne -1 ]]; then
+            left_positions+=($result)
+        fi
     done
 
-    [[ $debug -ge 2 ]] && echo "checked left" > /dev/tty
-    if [[ $pos -ne -1 ]]; then
-        length=$((pos * 2))
-        if [[ $(check_subset $pos $length block) -eq 1 ]]; then
-            echo $pos
-            return 
-        fi
-    fi
-    [[ $debug -ge 2 ]] && echo "continue" > /dev/tty
+    [[ $debug -ge 2 ]] && echo "found left ${#left_positions[@]}" > /dev/tty
 
-    pos=1000000
     for entry in "${block[@]}"; do
-        # ignore left
-        for (( i=0; i<${#entry}; i++ )); do
-            newPos=$(check_vertical_mirror 1 ${entry:$i})
-            pos=$(( newPos < pos ? newPos : pos ))
-        done
-    done
-    [[ $debug -ge 2 ]] && echo "checked right $pos" > /dev/tty
-
-    if [[ $pos -ne -1 ]]; then
-        length=$(( (${#entry} - pos) * 2 ))
-        if [[ $(check_subset $pos $length  block) -eq 1 ]]; then
-            echo $pos
-            return
+        left_positions=( $(check_subset $entry 1 ${left_positions[@]}) )
+        if [[ ${#left_positions[@]} -eq 0 ]]; then
+            [[ $debug -ge 2 ]] && echo "no left mirror" > /dev/tty
+            # all eliminated
+            break
         fi
-    fi
-    [[ $debug -ge 2 ]] && echo "continue" > /dev/tty
+    done
 
-    echo 0;
+    if [[ ${#left_positions[@]} -gt 0 ]]; then
+        echo ${left_positions[0]}
+        return
+    fi
+
+    # ignore left
+    right_position=()
+    for (( i=0; i<${#first_enty}; i++ )); do
+        result=$(check_vertical_mirror 1 ${first_enty:$i})
+        if [[  $result -ne -1 ]]; then
+            right_position+=($result)
+        fi
+    done
+
+    [[ $debug -ge 2 ]] && echo "found right ${right_position[@]}" > /dev/tty
+    
+    if [[ ${#right_position[@]} -gt 0 ]]; then
+        for entry in "${block[@]}"; do
+            right_position=( $(check_subset $entry 0 ${right_position[@]}) )
+            if [[ ${#right_position[@]} -eq 0 ]]; then
+                [[ $debug -ge 2 ]] && echo "no right mirror" > /dev/tty
+                # all eliminated
+                echo 0
+                return
+            fi
+        done
+    fi
+
+    echo ${right_position[0]};
 }
 
 temp=()
@@ -129,7 +150,7 @@ for (( linePos=0; linePos<${#lines[@]}; linePos++ )); do
         if [[ $result -eq 0 ]]; then
             flipped=( $(flip "${temp[@]}") )
             
-            [[ $debug -ge 2 ]] && echo "check lines" > /dev/tty
+            [[ $debug -ge 2 ]] && echo "check flipped" > /dev/tty
             result=$(( $(check_block flipped) * 100 ))
         fi
         sum=$((sum + result))
