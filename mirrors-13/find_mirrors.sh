@@ -5,7 +5,7 @@ readarray -t lines < ./mirrors-13/input
 
 
 check_vertical_mirror () {
-    local ignore_left=$1
+    local left=$1
     local input=$2
     local length=${#input}
     local pos=0
@@ -20,14 +20,14 @@ check_vertical_mirror () {
         else
             echo -1
         fi
-    else 
+    else
         # cut front
-        if [[ $ignore_left -eq 1 && "${input:1:$((length/2))}" == $(rev <<< ${input:$((length/2 + 1))}) ]]; then
+        if [[ $left -eq 0 && "${input:1:$((length/2))}" == $(rev <<< ${input:$((length/2 + 1))}) ]]; then
             echo $((length/2 + 1))
         # cut back
-        elif [[ $ignore_left -eq 0 && ${input:0:$((length/2))} == $(rev <<< ${input:$((length/2)):$((length/2))}) ]]; then
+        elif [[ $left -eq 1 && ${input:0:$((length/2))} == $(rev <<< ${input:$((length/2)):$((length/2))}) ]]; then
             echo $((length/2))
-        else           
+        else
             echo -1
         fi
     fi
@@ -64,7 +64,7 @@ check_subset () {
     local possiblePosition=( "$@" )
     local validPositions=()
     local length=${#input}
-    
+
     if [[ $left -eq 1 ]]; then
         for pos in "${possiblePosition[@]}"; do
             if [[ ${input:0:$pos} == $(rev <<< "${input:$pos:$pos}") ]]; then
@@ -80,7 +80,7 @@ check_subset () {
     fi
 
     echo "${validPositions[@]}"
-}  
+}
 
 check_block () {
     local -n block=$1
@@ -92,7 +92,7 @@ check_block () {
     first_enty=${block[0]};
     left_positions=()
     for (( i=${#first_enty}; i>1; i-- )); do
-        result=$(check_vertical_mirror 0 ${first_enty:0:$i})
+        result=$(check_vertical_mirror 1 ${first_enty:0:$i})
         if [[  $result -ne -1 ]]; then
             left_positions+=($result)
         fi
@@ -124,7 +124,7 @@ check_block () {
     done
 
     [[ $debug -ge 2 ]] && echo "found right ${right_position[@]}" > /dev/tty
-    
+
     if [[ ${#right_position[@]} -gt 0 ]]; then
         for entry in "${block[@]}"; do
             right_position=( $(check_subset $entry 0 ${right_position[@]}) )
@@ -149,10 +149,10 @@ for (( linePos=0; linePos<${#lines[@]}; linePos++ )); do
         result=$(check_block temp)
         if [[ $result -eq 0 ]]; then
             flipped=( $(flip "${temp[@]}") )
-            
+
             [[ $debug -ge 2 ]] && echo "check flipped" > /dev/tty
             result=$(( $(check_block flipped) * 100 ))
-            
+
             if [[ $result -eq 0 ]]; then
                 echo "ERROR: No match found for:" > /dev/tty
                 print_block temp
