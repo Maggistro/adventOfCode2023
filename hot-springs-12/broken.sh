@@ -15,8 +15,8 @@ getAllMaskVariations () {
         hit=0
         for (( pos=0; pos<$groupSize; pos++)); do
             case ${groupDefinition[i]} in
-                '#') 
-                    hit=$((hit + 1)) 
+                '#')
+                    hit=$((hit + 1))
                     ;;
             esac
         done
@@ -31,7 +31,7 @@ getAllMaskVariations () {
         #clear hitlist to always include #
         if [[ $hit -ge 1 ]] && [[ $max_pos -eq -1 ]]; then
             hitList=()
-            max_pos=$((pos + 2*groupSize - 2))    
+            max_pos=$((pos + 2*groupSize - 2))
         fi
     done
 
@@ -60,13 +60,13 @@ checkMatch () {
     local groupSize=$2
 
     for (( one=0; one<${#groupSize[@]}; one++ )); do
-        if [[ ${maskPart[$one]} -eq '.' ]]; then
+        if [[ ${maskPart[$one]} == '.' ]]; then
             echo 0
             return
         fi
     done
 
-    if [[ ${maskPart:$groupSize:1} -eq '#' ]]; then
+    if [[ ${maskPart:$groupSize:1} == '#' ]]; then
         echo 0
         return
     fi
@@ -83,7 +83,8 @@ matchGroupCount () {
     local variant=0
 
     for (( pos=0; pos<${#mask}; pos++ )); do
-        if [[ $(checkMatch ${mask:$pos:$((size + 1))} ${groups[$group_number]}) -eq 1 ]]; then
+        size=${groups[$group_number]}
+        if [[ $(checkMatch ${mask:$pos:$size} ${groups[$group_number]}) -eq 1 ]]; then
             newVariants=$(matchGroupCount ${mask:$((pos+1))} "${groups[@]:1}")
             variant=$((newVariants + variant))
         fi
