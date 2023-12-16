@@ -1,23 +1,84 @@
 #!/bin/bash
 
 debug=${1:0}
-readarray -t lines < parapol-14/input
+readarray -t lines < parapol-14/miniinput
 
-
-flip () {
-    local -n input=$1
-    local length=${#input[0]}
-    local height=${#input[@]}
+rotate_right () {
+    local -n rotateRightInput=$1
+    local length=${#rotateRightInput[0]}
+    local height=${#rotateRightInput[@]}
     local temp=()
+    line=""
 
     for (( i=0; i<length; i++ )); do
         for (( j=0; j<height; j++ )); do
-            line=${input[$j]}
-            temp[$i]=${temp[$i]}${line:$i:1}
+            line=$line${rotateRightInput[$j]:$i:1}
         done
+        temp+=( $(rev <<< $line) )
+        line=""
     done
 
-    input=("${temp[@]}")
+    rotateRightInput=("${temp[@]}")
+}
+
+
+rotate_left () {
+    local -n rotateLeftInput=$1
+    local length=${#rotateLeftInput[0]}
+    local height=${#rotateLeftInput[@]}
+    local temp=()
+
+    for (( j=length-1; j>=0; j-- )); do
+        for (( i=0; i<height; i++)); do
+            line=$line${rotateLeftInput[$i]:$j:1}
+        done
+        temp+=( $line )
+        line=""
+    done
+
+    rotateLeftInput=("${temp[@]}")
+}
+
+cycle () {
+    local cycleInput=( "$@" )
+
+    # north
+    rotate_right cycleInput
+    out_north=()
+    for vertical in "${cycleInput[@]}"; do
+        out_north+=( $(bubble_up $vertical) )
+    done
+    # print_block out_north
+    [[ $debug -ge 2 ]] && echo "sorted north" > /dev/tty
+
+    # west
+    rotate_right out_north
+    out_west=()
+    for vertical in "${out_north[@]}"; do
+        out_west+=( $(bubble_up $vertical) )
+    done
+    # print_block out_west
+    [[ $debug -ge 2 ]] && echo "sorted west" > /dev/tty
+
+    # south
+    rotate_right out_west
+    out_south=()
+    for vertical in "${out_west[@]}"; do
+        out_south+=( $(bubble_up $vertical) )
+    done
+    # print_block out_south
+    [[ $debug -ge 2 ]] && echo "sorted south" > /dev/tty
+
+    # east
+    rotate_right out_south
+    out_east=()
+    for vertical in "${out_south[@]}"; do
+        out_east+=( $(bubble_up $vertical) )
+    done
+    # print_block out_east
+    [[ $debug -ge 2 ]] && echo "sorted east" > /dev/tty
+
+    echo "${out_east[@]}"
 }
 
 should_bubble () {
@@ -36,9 +97,9 @@ bubble_up () {
     local line=$1
     local newLine=$line
 
-    for (( i=0; i<${#newLine} - 1; i++ )); do
-        if [[ $(should_bubble "${newLine:$i:1}" "${newLine:$((i+1)):1}") -eq 1 ]]; then
-            newLine=${newLine:0:$i}${newLine:$((i+1)):1}${newLine:$i:1}${newLine:$((i+2))}
+    for (( i=${#newLine}; i>0 ; i-- )); do
+        if [[ $(should_bubble "${newLine:$((i-1)):1}" "${newLine:$i:1}" ) -eq 1 ]]; then
+            newLine=${newLine:0:$((i-1))}${newLine:$i:1}${newLine:$((i-1)):1}${newLine:$((i+1))}
         fi
     done
 
@@ -55,6 +116,7 @@ print_block () {
     for entry in "${data[@]}"; do
         echo $entry > /dev/tty
     done
+    echo "" > /dev/tty
 }
 
 get_load () {
@@ -71,26 +133,29 @@ get_load () {
     echo $load
 }
 
-echo "flipping input" > /dev/tty
-flip lines
-
-
-echo "flipped" > /dev/tty
-# sort input
-out=()
-for vertical in "${lines[@]}"; do
-    out+=( $(bubble_up $vertical) )
+rotate_left lines
+rotate_left lines
+# print_block lines
+count=0
+while :; do
+    newLines=$(cycle "${lines[@]}")
+    if [[ $newLines == "${lines[@]}" ]]; then
+        break
+    fi
+    if [[ $((count % 1000)) -eq 0 ]]; then
+        echo -n $count > /dev/tty
+    fi
+    count=$((count + 1))
+    lines=( $newLines )
 done
 
-echo "sorted" > /dev/tty
-
-# print_block out
+rotate_right lines
+# print_block lines
 
 # count load
 load=0
-for vertical in "${out[@]}"; do
+for vertical in "${lines[@]}"; do
     load=$(( load + $(get_load $vertical) ))
-    # echo $load > /dev/tty
 done
 
 echo "load is $load" > /dev/tty
