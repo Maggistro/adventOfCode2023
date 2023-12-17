@@ -26,6 +26,7 @@ declare -A sortedRim=()
 is_valid_rim () {
     local tile=$1
     local cost=$2
+    local straigth=$3
     local -n activeRims=sortedRim
     local tempRim=()
 
@@ -39,21 +40,19 @@ is_valid_rim () {
         return
     fi
 
-    echo 1
-
-    # if [[ ${activeRims[$tile]:a} ]]; then
-    #     value=${activeRims[$tile]}
-    #     tempIFS=$IFS
-    #     IFS='#' read -r -a tempRim <<< $value
-    #     IFS=$tempIFS
-    #     if [[ ${tempRim[0]} -gt $cost ]]; then
-    #         echo 1
-    #     else
-    #         echo 0
-    #     fi
-    # else
-    #     echo 1
-    # fi
+    if [[ ${activeRims["$tile#$straigth"]:a} ]]; then
+        value=${activeRims[$tile#$straigth]}
+        tempIFS=$IFS
+        IFS='#' read -r -a tempRim <<< $value
+        IFS=$tempIFS
+        if [[ ${tempRim[0]} -gt $cost ]]; then
+            echo 1
+        else
+            echo 0
+        fi
+    else
+        echo 1
+    fi
 }
 
 get_next_rims () {
@@ -65,7 +64,7 @@ get_next_rims () {
     local rims=()
 
     case $dir in
-        '^') #up left right
+        \^) #up left right
             if [[ $(( pos % line_length )) -ne 0 ]]; then #not left edge
                 rims+=( "1#$((pos - 1))<" )
             fi
@@ -78,7 +77,7 @@ get_next_rims () {
                 rims+=( "$((straigth + 1))#$((pos - line_length))^" )
             fi
             ;;
-        '>') #up right down
+        \>) #up right down
             if [[ $(((pos + 1) % line_length )) -ne 0 && $straigth -ne 3 ]]; then #not right edge
                 rims+=( "$((straigth + 1))#$((pos + 1))>" )
             fi
@@ -91,7 +90,7 @@ get_next_rims () {
                 rims+=( "1#$((pos + line_length))v" )
             fi
             ;;
-        'v') #right down left
+        "v") #right down left
 
             if [[ $(( pos % line_length )) -ne 0 ]]; then #not left edge
                 rims+=( "1#$((pos - 1))<" )
@@ -105,7 +104,7 @@ get_next_rims () {
                 rims+=( "$((straigth + 1))#$((pos + line_length))v" )
             fi
             ;;
-        '<') #up left down
+        "<") #up left down
 
             if [[ $((pos % (line_length - 1) )) -ne 0 && $straigth -ne 3 ]]; then #not left edge
                 rims+=( "$((straigth + 1))#$((pos - 1))<" )
@@ -127,7 +126,7 @@ get_next_rims () {
         rimPos=${rim:2:(-1)}
         nextCost=$((currentCost + ${tiles[$rimPos]}))
         [[ $debug -ge 4 ]] && echo "rim from $entry: ${tiles[$rimPos]} " > /dev/tty
-        if [[ $(is_valid_rim $rimPos $nextCost) -eq 1 ]]; then
+        if [[ $(is_valid_rim $rimPos $nextCost ${rim:0:1}) -eq 1 ]]; then
             returnRims+=( "$nextCost#$rim" )
         fi
     done
@@ -212,15 +211,18 @@ weighted_walk () {
         bestPathValue=$current_cost
         return
     else
-        unset activeRim[$current_tile]
+        unset activeRim[$current_tile#$straight_count]
         local next_rims=( $(get_next_rims $current_rim $current_cost $straight_count) )
-        local tempSlug=""
+        local tempPos=""
+        local tempStraight=""
+        tempRim=()
         for newRim in "${next_rims[@]}"; do
             tempIFS=$IFS
             IFS='#' read -r -a tempRim <<< $(tr -d ' ' <<< $newRim)
             IFS=$tempIFS
-            tempSlug=${tempRim[2]}
-            activeRim["${tempSlug:0:(-1)}"]=$newRim
+            tempPos=${tempRim[2]}
+            tempStraight=${tempRim[1]}
+            activeRim["${tempPos:0:(-1)}#$tempStraight"]=$newRim
         done
     fi
 
@@ -240,7 +242,7 @@ weighted_walk () {
     weighted_walk "$nextRim"
 }
 
-sortedRim[$start]="0#1#$start""v"
+sortedRim[$start#1]="0#1#$start""v"
 
 weighted_walk "0#1#$start""v"
 
